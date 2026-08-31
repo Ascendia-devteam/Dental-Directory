@@ -1,0 +1,354 @@
+import { useState } from 'react'
+import { supabase } from '../lib/supabase'
+import { SPECIALTIES } from '../lib/specialties'
+import { validateRequired, validatePhone, validateAvatar } from '../lib/validation'
+import Field from './ui/Field'
+import Input from './ui/Input'
+import Button from './ui/Button'
+import Alert from './ui/Alert'
+
+const AGE_GROUPS = ['Infants', 'Children', 'Teens', 'Adults', 'Seniors']
+
+const toList = (text) =>
+  text
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean)
+
+const fromList = (arr) => (arr && arr.length > 0 ? arr.join(', ') : '')
+
+function buildFormState(profile) {
+  return {
+    fullName: profile?.full_name ?? '',
+    specialty: profile?.specialty ?? '',
+    degree: profile?.degree ?? '',
+    licenseNo: profile?.license_no ?? '',
+    yearsExperience: profile?.years_experience ?? '',
+    phone: profile?.phone ?? '',
+    address: profile?.address ?? '',
+    website: profile?.website ?? '',
+    officeHours: profile?.office_hours ?? '',
+    education: profile?.education ?? '',
+    bio: profile?.bio ?? '',
+    acceptsNewPatients: profile?.accepts_new_patients ?? true,
+    languages: fromList(profile?.languages),
+    services: fromList(profile?.services),
+    insuranceAccepted: fromList(profile?.insurance_accepted),
+    paymentMethods: fromList(profile?.payment_methods),
+    ageGroups: profile?.age_groups ?? [],
+    avatar: null,
+  }
+}
+
+const textareaClass =
+  'w-full rounded-md border border-line bg-white px-3 py-2.5 text-ink placeholder:text-muted/60 focus:border-brand focus:outline-none'
+
+export default function ProfileEditForm({ profile, userId, onSaved, onCancel }) {
+  const [values, setValues] = useState(() => buildFormState(profile))
+  const [errors, setErrors] = useState({})
+  const [formError, setFormError] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [preview, setPreview] = useState(profile?.avatar_url ?? null)
+
+  const onChange = (name, value) => {
+    setValues((prev) => ({ ...prev, [name]: value }))
+    setErrors((prev) => ({ ...prev, [name]: null }))
+  }
+
+  const toggleAgeGroup = (group) => {
+    setValues((prev) => ({
+      ...prev,
+      ageGroups: prev.ageGroups.includes(group)
+        ? prev.ageGroups.filter((g) => g !== group)
+        : [...prev.ageGroups, group],
+    }))
+  }
+
+  const handleFile = (e) => {
+    const file = e.target.files?.[0] ?? null
+    const error = validateAvatar(file)
+    setErrors((prev) => ({ ...prev, avatar: error }))
+    if (error) return
+    onChange('avatar', file)
+    setPreview(file ? URL.createObjectURL(file) : (profile?.avatar_url ?? null))
+  }
+
+  const uploadAvatar = async () => {
+    if (!values.avatar) return null
+    const ext = values.avatar.name.split('.').pop().toLowerCase()
+    const path = `${userId}/profile-${Date.now()}.${ext}`
+    const { error } = await supabase.storage
+      .from('avatars')
+      .upload(path, values.avatar, { upsert: true, contentType: values.avatar.type })
+    if (error) throw error
+    const { data } = supabase.storage.from('avatars').getPublicUrl(path)
+    return data.publicUrl
+  }
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    const nextErrors = {
+      fullName: validateRequired(values.fullName, 'Your name'),
+      phone: validatePhone(values.phone),
+      address: validateRequired(values.address, 'Address'),
+    }
+    setErrors((prev) => ({ ...prev, ...nextErrors }))
+    if (Object.values(nextErrors).some(Boolean)) return
+
+    setSaving(true)
+    setFormError('')
+    try {
+      const avatarUrl = await uploadAvatar()
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          full_name: values.fullName,
+          specialty: values.specialty || null,
+          degree: values.degree || null,
+          license_no: values.licenseNo || null,
+          years_experience: values.yearsExperience ? Number(values.yearsExperience) : null,
+          phone: values.phone,
+          address: values.address,
+          website: values.website || null,
+          office_hours: values.officeHours || null,
+          education: values.education || null,
+          bio: values.bio || null,
+          accepts_new_patients: values.acceptsNewPatients,
+          languages: toList(values.languages),
+          services: toList(values.services),
+          insurance_accepted: toList(values.insuranceAccepted),
+          payment_methods: toList(values.paymentMethods),
+          age_groups: values.ageGroups,
+          ...(avatarUrl ? { avatar_url: avatarUrl } : {}),
+        })
+        .eq('id', userId)
+      if (error) throw error
+
+      await onSaved()
+    } catch (err) {
+      setFormError(err?.message ?? 'Could not save your profile. Please try again.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="mt-8 space-y-6">
+      <Alert>{formError}</Alert>
+
+      <div className="flex items-center gap-4">
+        <div className="h-16 w-16 shrink-0 overflow-hidden rounded-full border border-line bg-brand-soft">
+          {preview ? (
+            <img src={preview} alt="" className="h-full w-full object-cover" />
+          ) : (
+            <span className="flex h-full w-full items-center justify-center text-lg text-brand">
+              {values.fullName?.trim()?.[0]?.toUpperCase() ?? '·'}
+            </span>
+          )}
+        </div>
+        <input
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          onChange={handleFile}
+          className="block w-full text-sm text-muted file:mr-3 file:rounded-md file:border-0 file:bg-brand-soft file:px-4 file:py-2 file:text-sm file:font-medium file:text-brand hover:file:bg-brand-soft/70"
+        />
+      </div>
+      {errors.avatar && <p className="text-sm text-danger">{errors.avatar}</p>}
+
+      <Field label="Full name" htmlFor="fullName" error={errors.fullName}>
+        <Input
+          id="fullName"
+          value={values.fullName}
+          onChange={(e) => onChange('fullName', e.target.value)}
+          invalid={Boolean(errors.fullName)}
+        />
+      </Field>
+
+      <div className="grid gap-5 sm:grid-cols-2">
+        <Field label="Specialty" htmlFor="specialty">
+          <select
+            id="specialty"
+            value={values.specialty}
+            onChange={(e) => onChange('specialty', e.target.value)}
+            className="w-full rounded-md border border-line bg-white px-3 py-2.5 text-ink focus:border-brand focus:outline-none"
+          >
+            <option value="">Select one</option>
+            {SPECIALTIES.map((s) => (
+              <option key={s} value={s}>
+                {s}
+              </option>
+            ))}
+          </select>
+        </Field>
+        <Field label="Degree" htmlFor="degree" hint="Shown next to your name, e.g. DDS">
+          <Input
+            id="degree"
+            value={values.degree}
+            onChange={(e) => onChange('degree', e.target.value)}
+            placeholder="DDS"
+          />
+        </Field>
+      </div>
+
+      <div className="grid gap-5 sm:grid-cols-2">
+        <Field label="License number" htmlFor="licenseNo">
+          <Input
+            id="licenseNo"
+            value={values.licenseNo}
+            onChange={(e) => onChange('licenseNo', e.target.value)}
+            placeholder="M-28-1234"
+          />
+        </Field>
+        <Field label="Years in practice" htmlFor="yearsExperience">
+          <Input
+            id="yearsExperience"
+            type="number"
+            min="0"
+            value={values.yearsExperience}
+            onChange={(e) => onChange('yearsExperience', e.target.value)}
+          />
+        </Field>
+      </div>
+
+      <Field label="Contact phone" htmlFor="phone" error={errors.phone}>
+        <Input
+          id="phone"
+          type="tel"
+          value={values.phone}
+          onChange={(e) => onChange('phone', e.target.value)}
+          invalid={Boolean(errors.phone)}
+        />
+      </Field>
+
+      <Field label="Practice address" htmlFor="address" error={errors.address}>
+        <Input
+          id="address"
+          value={values.address}
+          onChange={(e) => onChange('address', e.target.value)}
+          invalid={Boolean(errors.address)}
+        />
+      </Field>
+
+      <div className="grid gap-5 sm:grid-cols-2">
+        <Field label="Website" htmlFor="website">
+          <Input
+            id="website"
+            type="url"
+            value={values.website}
+            onChange={(e) => onChange('website', e.target.value)}
+            placeholder="https://yourpractice.com"
+          />
+        </Field>
+        <Field label="Office hours" htmlFor="officeHours">
+          <Input
+            id="officeHours"
+            value={values.officeHours}
+            onChange={(e) => onChange('officeHours', e.target.value)}
+            placeholder="Mon-Fri 9am-5pm"
+          />
+        </Field>
+      </div>
+
+      <Field label="Education" htmlFor="education" hint="Dental school and graduation year">
+        <Input
+          id="education"
+          value={values.education}
+          onChange={(e) => onChange('education', e.target.value)}
+          placeholder="Harvard School of Dental Medicine, 2015"
+        />
+      </Field>
+
+      <Field label="About / bio" htmlFor="bio" hint="A short intro shown on your public profile.">
+        <textarea
+          id="bio"
+          rows={4}
+          value={values.bio}
+          onChange={(e) => onChange('bio', e.target.value)}
+          className={textareaClass}
+        />
+      </Field>
+
+      <Field
+        label="Services offered"
+        htmlFor="services"
+        hint="Comma-separated, e.g. Cleanings, Fillings, Teeth whitening"
+      >
+        <textarea
+          id="services"
+          rows={2}
+          value={values.services}
+          onChange={(e) => onChange('services', e.target.value)}
+          className={textareaClass}
+        />
+      </Field>
+
+      <Field
+        label="Insurance accepted"
+        htmlFor="insurance"
+        hint="Comma-separated, e.g. Delta Dental, Cigna, MetLife"
+      >
+        <Input
+          id="insurance"
+          value={values.insuranceAccepted}
+          onChange={(e) => onChange('insuranceAccepted', e.target.value)}
+        />
+      </Field>
+
+      <Field
+        label="Payment methods"
+        htmlFor="payment"
+        hint="Comma-separated, e.g. Cash, Credit card, Financing available"
+      >
+        <Input
+          id="payment"
+          value={values.paymentMethods}
+          onChange={(e) => onChange('paymentMethods', e.target.value)}
+        />
+      </Field>
+
+      <Field label="Languages spoken" htmlFor="languages" hint="Comma-separated, e.g. English, Spanish">
+        <Input
+          id="languages"
+          value={values.languages}
+          onChange={(e) => onChange('languages', e.target.value)}
+        />
+      </Field>
+
+      <fieldset>
+        <legend className="text-sm font-medium text-ink">Age groups treated</legend>
+        <div className="mt-2 flex flex-wrap gap-4">
+          {AGE_GROUPS.map((group) => (
+            <label key={group} className="flex items-center gap-2 text-sm text-ink">
+              <input
+                type="checkbox"
+                checked={values.ageGroups.includes(group)}
+                onChange={() => toggleAgeGroup(group)}
+                className="rounded border-line"
+              />
+              {group}
+            </label>
+          ))}
+        </div>
+      </fieldset>
+
+      <label className="flex items-center gap-2 text-sm text-ink">
+        <input
+          type="checkbox"
+          checked={values.acceptsNewPatients}
+          onChange={(e) => onChange('acceptsNewPatients', e.target.checked)}
+          className="rounded border-line"
+        />
+        Currently accepting new patients
+      </label>
+
+      <div className="flex items-center justify-end gap-3 border-t border-line pt-6">
+        <Button type="button" variant="ghost" onClick={onCancel} disabled={saving}>
+          Cancel
+        </Button>
+        <Button type="submit" disabled={saving}>
+          {saving ? 'Saving…' : 'Save profile'}
+        </Button>
+      </div>
+    </form>
+  )
+}
