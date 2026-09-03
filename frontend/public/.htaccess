@@ -1,0 +1,11 @@
+# React Router serves every route from index.html. Without this, opening
+# /search or /dr/username directly (or refreshing there) returns 404 on
+# Apache/LiteSpeed, because no such file exists on disk.
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+  RewriteRule ^index\.html$ - [L]
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteRule . /index.html [L]
+</IfModule>
