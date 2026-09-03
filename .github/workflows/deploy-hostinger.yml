@@ -30,33 +30,34 @@ jobs:
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
         run: npm run build
 
-      # scp-action's source glob does not match dotfiles, which would drop
-      # .htaccess (and with it the SPA rewrite rules). Tarring the whole
-      # directory ourselves keeps hidden files.
       - name: Package build output
         run: tar -czf site.tar.gz -C frontend/dist .
 
-      - name: Upload archive to Hostinger
-        uses: appleboy/scp-action@v1
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          port: ${{ secrets.SSH_PORT }}
-          username: ${{ secrets.SSH_USERNAME }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: site.tar.gz
-          target: /tmp
+      # Third-party SCP/SSH actions (appleboy/scp-action, appleboy/ssh-action)
+      # implement their own Go SSH/SCP client, which fails against
+      # Hostinger's shared hosting (non-bash login shell). Plain OpenSSH,
+      # already preinstalled on the runner, works fine against the same
+      # server, so drive it directly instead.
+      - name: Deploy over SSH
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+          SSH_USERNAME: ${{ secrets.SSH_USERNAME }}
+          SSH_TARGET: ${{ secrets.SSH_TARGET }}
+        run: |
+          set -e
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -p "$SSH_PORT" "$SSH_HOST" >> ~/.ssh/known_hosts 2>/dev/null
 
-      # Unpack over the web root and drop Hostinger's placeholder page.
-      - name: Unpack on server
-        uses: appleboy/ssh-action@v1
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          port: ${{ secrets.SSH_PORT }}
-          username: ${{ secrets.SSH_USERNAME }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: |
-            set -e
-            mkdir -p "${{ secrets.SSH_TARGET }}"
-            tar -xzf /tmp/site.tar.gz -C "${{ secrets.SSH_TARGET }}"
-            rm -f /tmp/site.tar.gz "${{ secrets.SSH_TARGET }}/default.php"
-            ls -la "${{ secrets.SSH_TARGET }}"
+          SSH_OPTS="-i ~/.ssh/deploy_key -p $SSH_PORT -o BatchMode=yes"
+
+          scp $SSH_OPTS site.tar.gz "$SSH_USERNAME@$SSH_HOST:/tmp/site.tar.gz"
+
+          ssh $SSH_OPTS "$SSH_USERNAME@$SSH_HOST" "
+            mkdir -p '$SSH_TARGET' &&
+            tar -xzf /tmp/site.tar.gz -C '$SSH_TARGET' &&
+            rm -f /tmp/site.tar.gz '$SSH_TARGET/default.php' &&
+            ls -la '$SSH_TARGET'
+          "
