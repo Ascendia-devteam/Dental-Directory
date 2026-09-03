@@ -9,9 +9,9 @@ jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 20
           cache: npm
@@ -30,16 +30,33 @@ jobs:
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
         run: npm run build
 
-      # SFTP/SCP over SSH. Hostinger shared hosting listens on port 65002,
-      # not the default 22. Auth is by deploy key — the matching public key
-      # is registered in hPanel under Advanced > SSH Access.
-      - name: Deploy to Hostinger over SFTP
-        uses: appleboy/scp-action@v0.1.7
+      # scp-action's source glob does not match dotfiles, which would drop
+      # .htaccess (and with it the SPA rewrite rules). Tarring the whole
+      # directory ourselves keeps hidden files.
+      - name: Package build output
+        run: tar -czf site.tar.gz -C frontend/dist .
+
+      - name: Upload archive to Hostinger
+        uses: appleboy/scp-action@v1
         with:
           host: ${{ secrets.SSH_HOST }}
           port: ${{ secrets.SSH_PORT }}
           username: ${{ secrets.SSH_USERNAME }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: frontend/dist/*
-          target: ${{ secrets.SSH_TARGET }}
-          strip_components: 2
+          source: site.tar.gz
+          target: /tmp
+
+      # Unpack over the web root and drop Hostinger's placeholder page.
+      - name: Unpack on server
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          port: ${{ secrets.SSH_PORT }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            set -e
+            mkdir -p "${{ secrets.SSH_TARGET }}"
+            tar -xzf /tmp/site.tar.gz -C "${{ secrets.SSH_TARGET }}"
+            rm -f /tmp/site.tar.gz "${{ secrets.SSH_TARGET }}/default.php"
+            ls -la "${{ secrets.SSH_TARGET }}"
