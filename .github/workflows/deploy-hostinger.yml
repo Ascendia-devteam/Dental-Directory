@@ -5,6 +5,9 @@ on:
     branches: [main]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
@@ -35,9 +38,9 @@ jobs:
 
       # Third-party SCP/SSH actions (appleboy/scp-action, appleboy/ssh-action)
       # implement their own Go SSH/SCP client, which fails against
-      # Hostinger's shared hosting (non-bash login shell). Plain OpenSSH,
-      # already preinstalled on the runner, works fine against the same
-      # server, so drive it directly instead.
+      # Hostinger's shared hosting. Plain OpenSSH, already preinstalled on
+      # the runner, works fine against the same server, so drive it
+      # directly instead.
       - name: Deploy over SSH
         env:
           SSH_HOST: ${{ secrets.SSH_HOST }}
@@ -45,19 +48,34 @@ jobs:
           SSH_USERNAME: ${{ secrets.SSH_USERNAME }}
           SSH_TARGET: ${{ secrets.SSH_TARGET }}
         run: |
-          set -e
+          exec > >(tee deploy-debug.log) 2>&1
+          set -x
           mkdir -p ~/.ssh
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
-          ssh-keyscan -p "$SSH_PORT" "$SSH_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+          ssh-keyscan -p "$SSH_PORT" "$SSH_HOST" >> ~/.ssh/known_hosts
 
-          SSH_OPTS="-i ~/.ssh/deploy_key -p $SSH_PORT -o BatchMode=yes"
+          SSH_OPTS="-i ~/.ssh/deploy_key -p $SSH_PORT -o BatchMode=yes -vvv"
 
-          scp $SSH_OPTS site.tar.gz "$SSH_USERNAME@$SSH_HOST:/tmp/site.tar.gz"
+          scp $SSH_OPTS site.tar.gz "$SSH_USERNAME@$SSH_HOST:/tmp/site.tar.gz" \
+            || echo "SCP_FAILED_EXIT=$?"
 
           ssh $SSH_OPTS "$SSH_USERNAME@$SSH_HOST" "
             mkdir -p '$SSH_TARGET' &&
             tar -xzf /tmp/site.tar.gz -C '$SSH_TARGET' &&
             rm -f /tmp/site.tar.gz '$SSH_TARGET/default.php' &&
             ls -la '$SSH_TARGET'
-          "
+          " || echo "SSH_FAILED_EXIT=$?"
+
+      # Temporary: publish the raw command output to a file readable at
+      # raw.githubusercontent.com, since the Actions log download API
+      # requires an authenticated/admin token even on public repos.
+      - name: Publish debug log
+        if: always()
+        run: |
+          git config user.name "deploy-bot"
+          git config user.email "deploy-bot@users.noreply.github.com"
+          cp deploy-debug.log DEPLOY_DEBUG.log
+          git add DEPLOY_DEBUG.log
+          git commit -m "chore: deploy debug log [skip ci]" || echo "nothing to commit"
+          git push origin HEAD:main
