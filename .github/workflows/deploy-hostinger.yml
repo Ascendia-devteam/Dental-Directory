@@ -31,14 +31,15 @@ jobs:
         run: npm run build
 
       # SFTP/SCP over SSH. Hostinger shared hosting listens on port 65002,
-      # not the default 22.
+      # not the default 22. Auth is by deploy key — the matching public key
+      # is registered in hPanel under Advanced > SSH Access.
       - name: Deploy to Hostinger over SFTP
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.SSH_HOST }}
           port: ${{ secrets.SSH_PORT }}
           username: ${{ secrets.SSH_USERNAME }}
-          password: ${{ secrets.SSH_PASSWORD }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
           source: frontend/dist/*
           target: ${{ secrets.SSH_TARGET }}
           strip_components: 2
