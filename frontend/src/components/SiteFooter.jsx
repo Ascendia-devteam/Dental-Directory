@@ -15,6 +15,12 @@ export default function SiteFooter() {
           <Link to="/login" className="hover:text-ink">
             Sign in
           </Link>
+          <Link to="/privacy" className="hover:text-ink">
+            Privacy Policy
+          </Link>
+          <Link to="/terms" className="hover:text-ink">
+            Terms and Conditions
+          </Link>
         </div>
       </div>
       <p className="mt-6 text-center text-xs text-muted">
