@@ -50,19 +50,22 @@ export default function Profile() {
         return
       }
 
-      const [{ data: phone }, { data: address }, { data: clinicRows }] = await Promise.all([
-        supabase.rpc('get_public_phone', { target_username: username }),
-        supabase.rpc('get_public_address', { target_username: username }),
-        supabase
-          .from('clinics')
-          .select('id, name, address, phone, website, office_hours')
-          .eq('profile_id', data.id)
-          .order('sort_order'),
-      ])
+      const [{ data: phone }, { data: address }, { data: clinicRows }, { data: clinicPhones }] =
+        await Promise.all([
+          supabase.rpc('get_public_phone', { target_username: username }),
+          supabase.rpc('get_public_address', { target_username: username }),
+          supabase
+            .from('clinics')
+            .select('id, name, address, website, office_hours')
+            .eq('profile_id', data.id)
+            .order('sort_order'),
+          supabase.rpc('get_public_clinic_phones', { target_profile_id: data.id }),
+        ])
 
       if (!active) return
+      const phoneByClinicId = new Map((clinicPhones ?? []).map((c) => [c.id, c.phone]))
       setProfile({ ...data, phone, address })
-      setClinics(clinicRows ?? [])
+      setClinics((clinicRows ?? []).map((c) => ({ ...c, phone: phoneByClinicId.get(c.id) ?? null })))
       setStatus('found')
     }
 
@@ -209,7 +212,7 @@ export default function Profile() {
                         href={clinicMapsUrl}
                         target="_blank"
                         rel="noreferrer"
-                        className="mt-1 inline-block text-sm text-brand underline underline-offset-2"
+                        className="mt-3 block text-sm text-brand underline underline-offset-2"
                       >
                         Get directions
                       </a>
@@ -362,7 +365,7 @@ export default function Profile() {
                     href={mapsUrl}
                     target="_blank"
                     rel="noreferrer"
-                    className="mt-1 inline-block text-sm text-brand underline underline-offset-2"
+                    className="mt-3 block text-sm text-brand underline underline-offset-2"
                   >
                     Get directions
                   </a>

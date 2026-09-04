@@ -75,10 +75,7 @@ export default function ProfileEditForm({ profile, userId, email, onSaved, onCan
   useEffect(() => {
     let active = true
     supabase
-      .from('clinics')
-      .select('id, name, address, phone, website, office_hours')
-      .eq('profile_id', userId)
-      .order('sort_order')
+      .rpc('get_my_clinics')
       .then(({ data }) => {
         if (!active) return
         setClinics(

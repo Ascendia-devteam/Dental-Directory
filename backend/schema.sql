@@ -212,7 +212,12 @@ alter table public.profiles
 
 comment on column public.profiles.is_admin is 'Grants read access to every profile''s phone number via get_public_phone(). Not self-assignable from the app.';
 
-revoke select (phone) on public.profiles from anon, authenticated;
+-- NOTE: a column-level revoke here is a no-op while the table-wide
+-- "grant select on public.profiles to anon, authenticated" from table
+-- setup is still in effect (Postgres column privileges only ADD access
+-- on top of a table-level grant, they can't subtract from one). The
+-- real fix is in section 11, which drops the table-wide grant and
+-- re-grants an explicit safe column list instead.
 
 create or replace function public.is_admin()
 returns boolean
@@ -350,7 +355,8 @@ $$;
 --    proper clinics table instead, since a doctor can practice at
 --    more than one location (each with its own address/phone/website).
 -- ------------------------------------------------------------
-revoke select (address) on public.profiles from anon, authenticated;
+-- Same caveat as the phone revoke above — see section 11 for the fix
+-- that actually takes effect.
 
 create or replace function public.get_my_address()
 returns text
@@ -437,3 +443,72 @@ create policy "owner deletes own clinics"
   on public.clinics for delete
   to authenticated
   using (profile_id = auth.uid());
+
+-- ------------------------------------------------------------
+-- 10. CLINIC PHONE PRIVACY
+--    Practice phone numbers collected in bulk (e.g. imported lead
+--    lists) are not confirmed with each dentist, so — like the
+--    personal phone/address — they stay admin-only rather than
+--    published on the public profile. The owning dentist can still
+--    see and edit their own clinics' phone via get_my_clinics().
+-- ------------------------------------------------------------
+-- Same caveat as the phone/address revokes above — see section 11 for
+-- the fix that actually takes effect.
+
+create or replace function public.get_my_clinics()
+returns setof public.clinics
+language sql security definer set search_path = public stable
+as $$
+  select * from public.clinics
+  where profile_id = auth.uid()
+  order by sort_order;
+$$;
+
+create or replace function public.get_public_clinic_phones(target_profile_id uuid)
+returns table (id uuid, phone text)
+language sql security definer set search_path = public stable
+as $$
+  select c.id, c.phone
+  from public.clinics c
+  where c.profile_id = target_profile_id
+    and public.is_admin();
+$$;
+
+grant execute on function public.get_my_clinics() to authenticated;
+grant execute on function public.get_public_clinic_phones(uuid) to anon, authenticated;
+
+-- ------------------------------------------------------------
+-- 11. FIX INEFFECTIVE COLUMN-LEVEL REVOKES (phone/address)
+--    Sections 7, 9, and 10 each did `revoke select (col) ... from
+--    anon, authenticated`, believing that closed off the column. It
+--    did not: Supabase's initial table setup grants table-wide
+--    `select` on these tables to anon/authenticated so PostgREST can
+--    expose them at all, and a table-wide grant covers every column —
+--    a narrower column-level revoke cannot subtract from a broader
+--    table-level grant that's still in force. Confirmed live: an
+--    anonymous REST call for profiles.phone / profiles.address /
+--    clinics.phone returned data despite the revokes above.
+--
+--    The only way to actually restrict a column via privileges is to
+--    revoke the table-wide grant and re-grant an explicit safe column
+--    list instead. All legitimate access to the excluded columns
+--    already goes through the SECURITY DEFINER functions above
+--    (get_my_phone, get_public_phone, get_my_address,
+--    get_public_address, get_my_clinics, get_public_clinic_phones,
+--    list_all_profiles_admin), which run with the function owner's
+--    privileges and are unaffected by these grants.
+-- ------------------------------------------------------------
+revoke select on public.profiles from anon, authenticated;
+grant select (
+  id, username, full_name, specialty, license_no, bio, avatar_url,
+  is_published, created_at, updated_at, degree, years_experience,
+  education, website, office_hours, accepts_new_patients, languages,
+  services, insurance_accepted, payment_methods, age_groups,
+  is_admin, is_verified
+) on public.profiles to anon, authenticated;
+
+revoke select on public.clinics from anon, authenticated;
+grant select (
+  id, profile_id, name, address, website, office_hours, sort_order,
+  created_at, updated_at
+) on public.clinics to anon, authenticated;

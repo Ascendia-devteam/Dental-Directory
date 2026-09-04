@@ -7,10 +7,13 @@ import Button from '../components/ui/Button'
 import { supabase } from '../lib/supabase'
 import { SPECIALTIES } from '../lib/specialties'
 
+const PAGE_SIZE = 24
+
 export default function SearchResults() {
   const [searchParams, setSearchParams] = useSearchParams()
   const q = searchParams.get('q') ?? ''
   const specialty = searchParams.get('specialty') ?? ''
+  const page = Math.max(1, parseInt(searchParams.get('page') ?? '1', 10) || 1)
 
   const [queryInput, setQueryInput] = useState(q)
   const [profiles, setProfiles] = useState([])
@@ -43,6 +46,7 @@ export default function SearchResults() {
     const next = new URLSearchParams(searchParams)
     if (queryInput.trim()) next.set('q', queryInput.trim())
     else next.delete('q')
+    next.delete('page')
     setSearchParams(next)
   }
 
@@ -50,7 +54,16 @@ export default function SearchResults() {
     const next = new URLSearchParams(searchParams)
     if (value) next.set('specialty', value)
     else next.delete('specialty')
+    next.delete('page')
     setSearchParams(next)
+  }
+
+  const goToPage = (nextPage) => {
+    const next = new URLSearchParams(searchParams)
+    if (nextPage > 1) next.set('page', String(nextPage))
+    else next.delete('page')
+    setSearchParams(next)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   const clearFilters = () => {
@@ -73,6 +86,9 @@ export default function SearchResults() {
   })
 
   const hasFilters = Boolean(q || specialty)
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
+  const currentPage = Math.min(page, totalPages)
+  const paginated = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE)
 
   return (
     <div className="min-h-screen">
@@ -154,10 +170,33 @@ export default function SearchResults() {
               )}
             </div>
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {filtered.map((p) => (
+              {paginated.map((p) => (
                 <ProfileCard key={p.username} profile={p} />
               ))}
             </div>
+            {totalPages > 1 && (
+              <div className="mt-10 flex items-center justify-center gap-4">
+                <button
+                  type="button"
+                  onClick={() => goToPage(currentPage - 1)}
+                  disabled={currentPage <= 1}
+                  className="rounded-md border border-line px-4 py-2 text-sm text-ink hover:bg-brand-soft disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  Previous
+                </button>
+                <span className="text-sm text-muted">
+                  Page {currentPage} of {totalPages}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => goToPage(currentPage + 1)}
+                  disabled={currentPage >= totalPages}
+                  className="rounded-md border border-line px-4 py-2 text-sm text-ink hover:bg-brand-soft disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  Next
+                </button>
+              </div>
+            )}
           </>
         )}
       </section>
