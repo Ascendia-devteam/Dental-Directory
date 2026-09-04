@@ -9,6 +9,8 @@ import AdminInbox from './pages/AdminInbox'
 import Terms from './pages/Terms'
 import Privacy from './pages/Privacy'
 import Contact from './pages/Contact'
+import ForgotPassword from './pages/ForgotPassword'
+import ResetPassword from './pages/ResetPassword'
 import { useAuth } from './context/AuthContext'
 
 function Protected({ children }) {
@@ -51,6 +53,11 @@ export default function App() {
       <Route path="/terms" element={<Terms />} />
       <Route path="/privacy" element={<Privacy />} />
       <Route path="/contact" element={<Contact />} />
+      {/* Both stay outside GuestOnly on purpose: the recovery link signs the
+          user in, so a guest-only guard would bounce them to /dashboard
+          before they could set a new password. */}
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
       <Route
         path="/register"
         element={

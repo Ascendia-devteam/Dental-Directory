@@ -4,6 +4,7 @@ import SiteHeader from '../components/SiteHeader'
 import Button from '../components/ui/Button'
 import { supabase } from '../lib/supabase'
 import { initial } from '../lib/initials'
+import { passwordResetRedirectTo } from '../lib/authRedirect'
 
 export default function AdminInbox() {
   const [accounts, setAccounts] = useState([])
@@ -40,7 +41,9 @@ export default function AdminInbox() {
 
   const sendPasswordReset = async (account) => {
     setResetId(account.id)
-    const { error } = await supabase.auth.resetPasswordForEmail(account.email)
+    const { error } = await supabase.auth.resetPasswordForEmail(account.email, {
+      redirectTo: passwordResetRedirectTo(),
+    })
     setResetMessage((prev) => ({
       ...prev,
       [account.id]: error ? error.message : `Reset email sent to ${account.email}.`,

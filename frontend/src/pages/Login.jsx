@@ -85,6 +85,12 @@ export default function Login() {
         </Button>
 
         <p className="text-sm text-muted">
+          <Link to="/forgot-password" className="text-brand underline underline-offset-2">
+            Forgot your password?
+          </Link>
+        </p>
+
+        <p className="text-sm text-muted">
           Don't have an account?{' '}
           <Link to="/register" className="text-brand underline underline-offset-2">
             Create your profile

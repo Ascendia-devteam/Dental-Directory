@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { SPECIALTIES } from '../lib/specialties'
 import { validateRequired, validatePhone, validateAvatar, validateEmail } from '../lib/validation'
+import { passwordResetRedirectTo } from '../lib/authRedirect'
 import Field from './ui/Field'
 import Input from './ui/Input'
 import Button from './ui/Button'
@@ -223,12 +224,19 @@ export default function ProfileEditForm({ profile, userId, email, onSaved, onCan
     if (err) return
     setEmailSaving(true)
     setEmailStatus('')
-    const { error } = await supabase.auth.updateUser({ email: emailValue.trim() })
+    const { data, error } = await supabase.auth.updateUser({ email: emailValue.trim() })
     setEmailSaving(false)
+    if (error) {
+      setEmailStatus(error.message)
+      return
+    }
+    // Whether a confirmation step happens depends on the project's email
+    // settings, so report what actually came back rather than assuming:
+    // new_email is only set while a change is still awaiting confirmation.
     setEmailStatus(
-      error
-        ? error.message
-        : 'Confirmation links were sent to your old and new email addresses — the change applies once you confirm.'
+      data?.user?.new_email
+        ? `Confirmation sent to ${data.user.new_email} — the change applies once you confirm.`
+        : `Email updated to ${emailValue.trim()}.`
     )
   }
 
@@ -236,7 +244,9 @@ export default function ProfileEditForm({ profile, userId, email, onSaved, onCan
     if (!email) return
     setResetSending(true)
     setResetStatus('')
-    const { error } = await supabase.auth.resetPasswordForEmail(email)
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: passwordResetRedirectTo(),
+    })
     setResetSending(false)
     setResetStatus(error ? error.message : `Password reset email sent to ${email}.`)
   }
