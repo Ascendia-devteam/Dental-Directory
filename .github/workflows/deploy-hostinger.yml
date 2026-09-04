@@ -38,28 +38,6 @@ jobs:
       # Hostinger's shared hosting. Plain OpenSSH, already preinstalled on
       # the runner, works fine against the same server, so drive it
       # directly instead.
-      # TEMPORARY: one assertion per secret, each its own step. Step
-      # pass/fail is visible via the Actions API without a token (unlike
-      # log content), so whichever one turns red tells us the exact cause
-      # of the fast, silent "Deploy over SSH" failure — no secret values
-      # are ever printed.
-      - name: Check SSH_HOST is set
-        run: '[ -n "${{ secrets.SSH_HOST }}" ]'
-      - name: Check SSH_PORT is set
-        run: '[ -n "${{ secrets.SSH_PORT }}" ]'
-      - name: Check SSH_USERNAME is set
-        run: '[ -n "${{ secrets.SSH_USERNAME }}" ]'
-      - name: Check SSH_TARGET is set
-        run: '[ -n "${{ secrets.SSH_TARGET }}" ]'
-      - name: Check SSH_PRIVATE_KEY is set
-        run: '[ -n "${{ secrets.SSH_PRIVATE_KEY }}" ]'
-      - name: Check SSH_PRIVATE_KEY looks like a PEM key
-        run: |
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" | head -1 | grep -q "BEGIN.*PRIVATE KEY"
-      - name: Check ssh-keyscan can reach the host
-        run: |
-          timeout 15 ssh-keyscan -p "${{ secrets.SSH_PORT }}" "${{ secrets.SSH_HOST }}" | grep -q ssh
-
       - name: Deploy over SSH
         env:
           SSH_HOST: ${{ secrets.SSH_HOST }}
