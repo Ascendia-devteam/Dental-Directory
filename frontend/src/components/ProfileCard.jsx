@@ -4,7 +4,7 @@ export default function ProfileCard({ profile }) {
   return (
     <Link
       to={`/dr/${profile.username}`}
-      className="block rounded-lg border border-line bg-white p-5 transition-shadow hover:shadow-md"
+      className="block min-w-0 rounded-lg border border-line bg-white p-5 transition-shadow hover:shadow-md"
     >
       <div className="flex items-center gap-4">
         <div className="h-14 w-14 shrink-0 overflow-hidden rounded-full border border-line bg-brand-soft">
