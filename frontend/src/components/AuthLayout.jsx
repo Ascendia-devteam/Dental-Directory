@@ -16,7 +16,7 @@ export default function AuthLayout({ title, subtitle, aside, children }) {
           <ul className="space-y-3 text-sm text-white/80">
             <li>Professional profile with photo, specialty, and practice.</li>
             <li>Direct contact, no intermediaries.</li>
-            <li>We verify your dental license before publishing.</li>
+            <li>We review every account before it goes live.</li>
           </ul>
         </div>
 

@@ -303,7 +303,11 @@ export default function ProfileEditForm({ profile, userId, email, onSaved, onCan
       </div>
 
       <div className="grid gap-5 sm:grid-cols-2">
-        <Field label="License number" htmlFor="licenseNo">
+        <Field
+          label="License number"
+          htmlFor="licenseNo"
+          hint="Collected for our records and displayed on your profile as entered. We do not independently verify licenses."
+        >
           <Input
             id="licenseNo"
             value={values.licenseNo}
@@ -326,7 +330,7 @@ export default function ProfileEditForm({ profile, userId, email, onSaved, onCan
         label="Personal phone"
         htmlFor="phone"
         error={errors.phone}
-        hint="Private — only visible to you and site admins."
+        hint="Used to verify your account, contact you about your listing, and inform you about our services. Not published on your public profile."
       >
         <Input
           id="phone"

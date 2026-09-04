@@ -1,4 +1,6 @@
-export default function StepReview({ values, onEdit }) {
+import { Link } from 'react-router-dom'
+
+export default function StepReview({ values, onEdit, onChange, error }) {
   const rows = [
     ['Username', values.username, 0],
     ['Email', values.email, 0],
@@ -34,8 +36,41 @@ export default function StepReview({ values, onEdit }) {
 
       <p className="text-sm text-muted">
         By creating your account you accept the directory's terms. Your profile stays
-        unpublished until we verify your license number.
+        unpublished until our team reviews it.
       </p>
+
+      <label className="flex items-start gap-3 text-sm text-ink">
+        <input
+          type="checkbox"
+          checked={values.agreedToTerms}
+          onChange={(e) => onChange('agreedToTerms', e.target.checked)}
+          className="mt-0.5 rounded border-line"
+        />
+        <span>
+          I confirm that the information I submit is accurate, that I am legally
+          authorised to submit it, that I am at least 18 years old, and that I have
+          read and agree to the{' '}
+          <Link
+            to="/terms"
+            target="_blank"
+            rel="noreferrer"
+            className="font-medium text-brand underline underline-offset-2"
+          >
+            Terms and Conditions
+          </Link>{' '}
+          and{' '}
+          <Link
+            to="/privacy"
+            target="_blank"
+            rel="noreferrer"
+            className="font-medium text-brand underline underline-offset-2"
+          >
+            Privacy Policy
+          </Link>
+          .
+        </span>
+      </label>
+      {error && <p className="text-sm text-danger">{error}</p>}
     </div>
   )
 }

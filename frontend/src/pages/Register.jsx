@@ -31,6 +31,7 @@ const INITIAL = {
   phone: '',
   address: '',
   avatar: null,
+  agreedToTerms: false,
 }
 
 export default function Register() {
@@ -92,6 +93,14 @@ export default function Register() {
   }
 
   const handleSubmit = async () => {
+    if (!values.agreedToTerms) {
+      setErrors((prev) => ({
+        ...prev,
+        agreedToTerms: 'Please confirm and accept the terms to continue.',
+      }))
+      return
+    }
+
     setSubmitting(true)
     setFormError('')
     try {
@@ -175,7 +184,14 @@ export default function Register() {
             setErrors={setErrors}
           />
         )}
-        {step === 2 && <StepReview values={values} onEdit={setStep} />}
+        {step === 2 && (
+          <StepReview
+            values={values}
+            onEdit={setStep}
+            onChange={onChange}
+            error={errors.agreedToTerms}
+          />
+        )}
 
         <div className="flex items-center justify-between gap-3 border-t border-line pt-6">
           {step > 0 ? (

@@ -17,7 +17,17 @@ export default function SiteFooter() {
           </Link>
         </div>
       </div>
-      <p className="mt-6 text-center text-xs text-muted">Developed by Ascendia 2026</p>
+      <p className="mt-6 text-center text-xs text-muted">
+        Developed by{' '}
+        <a
+          href="https://ascendiagroup.ai/"
+          target="_blank"
+          rel="noreferrer"
+          className="underline underline-offset-2 hover:text-ink"
+        >
+          Ascendia Group
+        </a>
+      </p>
     </footer>
   )
 }

@@ -140,7 +140,7 @@ export default function Profile() {
                   {degree ? `, ${degree}` : ''}
                 </h1>
                 <span className="inline-flex items-center gap-1 rounded-full bg-brand-soft px-2.5 py-0.5 text-xs font-medium text-brand">
-                  ✓ License verified
+                  ✓ Verified account
                 </span>
               </div>
               <p className="mt-1 text-lg text-brand">{specialty || 'General dentistry'}</p>

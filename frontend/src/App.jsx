@@ -6,6 +6,8 @@ import Login from './pages/Login'
 import Register from './pages/Register'
 import Dashboard from './pages/Dashboard'
 import AdminInbox from './pages/AdminInbox'
+import Terms from './pages/Terms'
+import Privacy from './pages/Privacy'
 import { useAuth } from './context/AuthContext'
 
 function Protected({ children }) {
@@ -45,6 +47,8 @@ export default function App() {
       <Route path="/" element={<Home />} />
       <Route path="/search" element={<SearchResults />} />
       <Route path="/dr/:username" element={<Profile />} />
+      <Route path="/terms" element={<Terms />} />
+      <Route path="/privacy" element={<Privacy />} />
       <Route
         path="/register"
         element={

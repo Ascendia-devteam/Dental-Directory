@@ -60,7 +60,7 @@ export default function StepPersonal({ values, onChange, errors, setErrors }) {
         <Field
           label="License number"
           htmlFor="licenseNo"
-          hint="We verify it before publishing your profile."
+          hint="Collected for our records and displayed on your profile as entered. We do not independently verify licenses."
         >
           <Input
             id="licenseNo"
@@ -71,7 +71,12 @@ export default function StepPersonal({ values, onChange, errors, setErrors }) {
         </Field>
       </div>
 
-      <Field label="Contact phone" htmlFor="phone" error={errors.phone}>
+      <Field
+        label="Contact phone"
+        htmlFor="phone"
+        error={errors.phone}
+        hint="Used to verify your account, contact you about your listing, and inform you about our services. Not published on your public profile."
+      >
         <Input
           id="phone"
           type="tel"
