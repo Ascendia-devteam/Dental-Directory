@@ -104,7 +104,6 @@ export default function Profile() {
     license_no,
     education,
     years_experience,
-    accepts_new_patients,
     languages = [],
     services = [],
     insurance_accepted = [],
@@ -149,15 +148,6 @@ export default function Profile() {
               <p className="mt-1 text-lg text-brand">{specialty || 'General dentistry'}</p>
 
               <div className="mt-3 flex flex-wrap items-center gap-3">
-                {accepts_new_patients ? (
-                  <span className="rounded-full bg-brand/10 px-3 py-1 text-sm font-medium text-brand">
-                    Accepting new patients
-                  </span>
-                ) : (
-                  <span className="rounded-full bg-muted/10 px-3 py-1 text-sm font-medium text-muted">
-                    Not accepting new patients
-                  </span>
-                )}
                 {Boolean(years_experience) && (
                   <span className="text-sm text-muted">{years_experience} years in practice</span>
                 )}
