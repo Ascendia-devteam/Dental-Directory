@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import SiteHeader from '../components/SiteHeader'
+import SiteFooter from '../components/SiteFooter'
 import ProfileCard from '../components/ProfileCard'
 import Button from '../components/ui/Button'
 import { supabase } from '../lib/supabase'
@@ -20,7 +21,7 @@ export default function SearchResults() {
     setLoading(true)
     supabase
       .from('profiles')
-      .select('username, full_name, specialty, address, avatar_url')
+      .select('username, full_name, specialty, avatar_url, clinics(name, address)')
       .eq('is_published', true)
       .order('created_at', { ascending: false })
       .then(({ data }) => {
@@ -60,7 +61,11 @@ export default function SearchResults() {
   const filtered = profiles.filter((p) => {
     const matchesQuery =
       !q ||
-      [p.full_name, p.specialty, p.address]
+      [
+        p.full_name,
+        p.specialty,
+        ...(p.clinics ?? []).flatMap((c) => [c.name, c.address]),
+      ]
         .filter(Boolean)
         .some((f) => f.toLowerCase().includes(q.toLowerCase()))
     const matchesSpecialty = !specialty || p.specialty === specialty
@@ -156,6 +161,8 @@ export default function SearchResults() {
           </>
         )}
       </section>
+
+      <SiteFooter />
     </div>
   )
 }

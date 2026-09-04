@@ -85,22 +85,14 @@ export default function StepPersonal({ values, onChange, errors, setErrors }) {
       </Field>
 
       <Field
-        label="Practice address"
+        label="Personal address (optional)"
         htmlFor="address"
-        error={errors.address}
-        hint="It will appear on the map on your public profile."
+        hint="Private — only visible to you and site admins, never shown publicly. Add your practice's address later as a clinic on your dashboard."
       >
         <Input
           id="address"
           value={values.address}
           onChange={(e) => onChange('address', e.target.value)}
-          onBlur={() =>
-            setErrors((p) => ({
-              ...p,
-              address: validateRequired(values.address, 'Address'),
-            }))
-          }
-          invalid={Boolean(errors.address)}
           autoComplete="street-address"
           placeholder="123 Main St, Springfield"
         />

@@ -342,3 +342,98 @@ as $$
     and is_verified = true
     and public.is_admin();
 $$;
+
+-- ------------------------------------------------------------
+-- 9. ADDRESS PRIVACY & CLINICS
+--    The personal address gets the same admin-only treatment as
+--    phone. Public "where do I find this practice" info moves to a
+--    proper clinics table instead, since a doctor can practice at
+--    more than one location (each with its own address/phone/website).
+-- ------------------------------------------------------------
+revoke select (address) on public.profiles from anon, authenticated;
+
+create or replace function public.get_my_address()
+returns text
+language sql security definer set search_path = public stable
+as $$
+  select address from public.profiles where id = auth.uid();
+$$;
+
+create or replace function public.get_public_address(target_username text)
+returns text
+language sql security definer set search_path = public stable
+as $$
+  select address from public.profiles
+  where username = lower(target_username)
+    and is_published = true
+    and is_verified = true
+    and public.is_admin();
+$$;
+
+grant execute on function public.get_my_address() to authenticated;
+grant execute on function public.get_public_address(text) to anon, authenticated;
+
+create table if not exists public.clinics (
+  id           uuid primary key default gen_random_uuid(),
+  profile_id   uuid not null references public.profiles(id) on delete cascade,
+  name         text,
+  address      text,
+  phone        text,
+  website      text,
+  office_hours text,
+  sort_order   integer not null default 0,
+  created_at   timestamptz not null default now(),
+  updated_at   timestamptz not null default now()
+);
+
+create index if not exists clinics_profile_id_idx on public.clinics (profile_id);
+
+drop trigger if exists clinics_touch_updated_at on public.clinics;
+create trigger clinics_touch_updated_at
+  before update on public.clinics
+  for each row execute function public.touch_updated_at();
+
+alter table public.clinics enable row level security;
+
+drop policy if exists "clinics of published profiles are public" on public.clinics;
+create policy "clinics of published profiles are public"
+  on public.clinics for select
+  using (
+    exists (
+      select 1 from public.profiles p
+      where p.id = clinics.profile_id
+        and p.is_published = true
+        and p.is_verified = true
+    )
+  );
+
+drop policy if exists "owner reads own clinics" on public.clinics;
+create policy "owner reads own clinics"
+  on public.clinics for select
+  to authenticated
+  using (profile_id = auth.uid());
+
+drop policy if exists "admin reads any clinics" on public.clinics;
+create policy "admin reads any clinics"
+  on public.clinics for select
+  to authenticated
+  using (public.is_admin());
+
+drop policy if exists "owner inserts own clinics" on public.clinics;
+create policy "owner inserts own clinics"
+  on public.clinics for insert
+  to authenticated
+  with check (profile_id = auth.uid());
+
+drop policy if exists "owner updates own clinics" on public.clinics;
+create policy "owner updates own clinics"
+  on public.clinics for update
+  to authenticated
+  using (profile_id = auth.uid())
+  with check (profile_id = auth.uid());
+
+drop policy if exists "owner deletes own clinics" on public.clinics;
+create policy "owner deletes own clinics"
+  on public.clinics for delete
+  to authenticated
+  using (profile_id = auth.uid());

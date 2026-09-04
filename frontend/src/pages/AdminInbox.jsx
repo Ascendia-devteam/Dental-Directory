@@ -9,6 +9,8 @@ export default function AdminInbox() {
   const [loading, setLoading] = useState(true)
   const [updatingId, setUpdatingId] = useState(null)
   const [onlyPending, setOnlyPending] = useState(true)
+  const [resetId, setResetId] = useState(null)
+  const [resetMessage, setResetMessage] = useState({})
 
   const load = async () => {
     setLoading(true)
@@ -33,6 +35,16 @@ export default function AdminInbox() {
       )
     }
     setUpdatingId(null)
+  }
+
+  const sendPasswordReset = async (account) => {
+    setResetId(account.id)
+    const { error } = await supabase.auth.resetPasswordForEmail(account.email)
+    setResetMessage((prev) => ({
+      ...prev,
+      [account.id]: error ? error.message : `Reset email sent to ${account.email}.`,
+    }))
+    setResetId(null)
   }
 
   const visible = onlyPending ? accounts.filter((a) => !a.is_verified) : accounts
@@ -117,7 +129,11 @@ export default function AdminInbox() {
                     {account.specialty || 'No specialty set'}
                     {account.license_no && ` · License ${account.license_no}`}
                     {account.phone && ` · ${account.phone}`}
+                    {account.address && ` · ${account.address}`}
                   </p>
+                  {resetMessage[account.id] && (
+                    <p className="mt-1 text-sm text-brand">{resetMessage[account.id]}</p>
+                  )}
                 </div>
 
                 <div className="flex items-center gap-2">
@@ -139,6 +155,14 @@ export default function AdminInbox() {
                   >
                     {account.is_verified ? 'Verified' : 'Pending'}
                   </span>
+                  <Button
+                    variant="ghost"
+                    onClick={() => sendPasswordReset(account)}
+                    disabled={resetId === account.id}
+                    className="!py-1.5"
+                  >
+                    {resetId === account.id ? 'Sending…' : 'Send reset'}
+                  </Button>
                   <Button
                     variant={account.is_verified ? 'ghost' : 'primary'}
                     onClick={() => toggleVerified(account)}

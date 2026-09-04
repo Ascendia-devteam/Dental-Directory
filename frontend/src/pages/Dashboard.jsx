@@ -21,6 +21,18 @@ export default function Dashboard() {
     setPublishing(false)
   }
 
+  // profile loads asynchronously right after login/refresh; ProfileEditForm
+  // seeds its fields from `profile` only once (lazy useState), so mounting
+  // it before the fetch lands would leave the form permanently blank.
+  if (!profile) {
+    return (
+      <div>
+        <SiteHeader />
+        <div className="flex min-h-[50vh] items-center justify-center text-muted">Loading…</div>
+      </div>
+    )
+  }
+
   if (editing) {
     return (
       <div>
@@ -32,6 +44,7 @@ export default function Dashboard() {
           <ProfileEditForm
             profile={profile}
             userId={user.id}
+            email={user.email}
             onCancel={() => setEditing(false)}
             onSaved={async () => {
               await refreshProfile()

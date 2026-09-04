@@ -66,7 +66,6 @@ export default function Register() {
       next = {
         fullName: validateRequired(values.fullName, 'Your name'),
         phone: validatePhone(values.phone),
-        address: validateRequired(values.address, 'Address'),
         avatar: validateAvatar(values.avatar),
       }
     }

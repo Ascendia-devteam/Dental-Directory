@@ -21,8 +21,8 @@ export default function ProfileCard({ profile }) {
           <p className="text-sm text-brand">{profile.specialty || 'General dentistry'}</p>
         </div>
       </div>
-      {profile.address && (
-        <p className="mt-4 truncate text-sm text-muted">{profile.address}</p>
+      {profile.clinics?.[0]?.address && (
+        <p className="mt-4 truncate text-sm text-muted">{profile.clinics[0].address}</p>
       )}
     </Link>
   )

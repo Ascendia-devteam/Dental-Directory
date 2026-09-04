@@ -10,19 +10,21 @@ export function AuthProvider({ children }) {
 
   const loadProfile = useCallback(async (userId) => {
     if (!userId) return setProfile(null)
-    // phone is excluded here by a column-level privilege (see schema.sql
-    // section 7) — only the owner or an admin can read it, via RPC.
-    const [{ data }, { data: phone }] = await Promise.all([
+    // phone and address are excluded here by column-level privileges
+    // (see schema.sql sections 7 & 9) — only the owner or an admin can
+    // read them, via RPC.
+    const [{ data }, { data: phone }, { data: address }] = await Promise.all([
       supabase
         .from('profiles')
         .select(
-          'id, username, full_name, address, specialty, license_no, bio, avatar_url, is_published, degree, years_experience, education, website, office_hours, accepts_new_patients, languages, services, insurance_accepted, payment_methods, age_groups, is_admin'
+          'id, username, full_name, specialty, license_no, bio, avatar_url, is_published, degree, years_experience, education, website, office_hours, accepts_new_patients, languages, services, insurance_accepted, payment_methods, age_groups, is_admin'
         )
         .eq('id', userId)
         .maybeSingle(),
       supabase.rpc('get_my_phone'),
+      supabase.rpc('get_my_address'),
     ])
-    setProfile(data ? { ...data, phone } : null)
+    setProfile(data ? { ...data, phone, address } : null)
   }, [])
 
   useEffect(() => {

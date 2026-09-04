@@ -1,7 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { SPECIALTIES } from '../lib/specialties'
-import { validateRequired, validatePhone, validateAvatar } from '../lib/validation'
+import { validateRequired, validatePhone, validateAvatar, validateEmail } from '../lib/validation'
 import Field from './ui/Field'
 import Input from './ui/Input'
 import Button from './ui/Button'
@@ -16,6 +16,16 @@ const toList = (text) =>
     .filter(Boolean)
 
 const fromList = (arr) => (arr && arr.length > 0 ? arr.join(', ') : '')
+
+const blankClinic = () => ({
+  key: `new-${Math.random().toString(36).slice(2)}`,
+  id: null,
+  name: '',
+  address: '',
+  phone: '',
+  website: '',
+  officeHours: '',
+})
 
 function buildFormState(profile) {
   return {
@@ -43,12 +53,51 @@ function buildFormState(profile) {
 const textareaClass =
   'w-full rounded-md border border-line bg-white px-3 py-2.5 text-ink placeholder:text-muted/60 focus:border-brand focus:outline-none'
 
-export default function ProfileEditForm({ profile, userId, onSaved, onCancel }) {
+export default function ProfileEditForm({ profile, userId, email, onSaved, onCancel }) {
   const [values, setValues] = useState(() => buildFormState(profile))
   const [errors, setErrors] = useState({})
   const [formError, setFormError] = useState('')
   const [saving, setSaving] = useState(false)
   const [preview, setPreview] = useState(profile?.avatar_url ?? null)
+
+  const [clinics, setClinics] = useState([])
+  const [removedClinicIds, setRemovedClinicIds] = useState([])
+  const [clinicsLoading, setClinicsLoading] = useState(true)
+
+  const [emailValue, setEmailValue] = useState(email ?? '')
+  const [emailError, setEmailError] = useState(null)
+  const [emailStatus, setEmailStatus] = useState('')
+  const [emailSaving, setEmailSaving] = useState(false)
+
+  const [resetStatus, setResetStatus] = useState('')
+  const [resetSending, setResetSending] = useState(false)
+
+  useEffect(() => {
+    let active = true
+    supabase
+      .from('clinics')
+      .select('id, name, address, phone, website, office_hours')
+      .eq('profile_id', userId)
+      .order('sort_order')
+      .then(({ data }) => {
+        if (!active) return
+        setClinics(
+          (data ?? []).map((c) => ({
+            key: c.id,
+            id: c.id,
+            name: c.name ?? '',
+            address: c.address ?? '',
+            phone: c.phone ?? '',
+            website: c.website ?? '',
+            officeHours: c.office_hours ?? '',
+          }))
+        )
+        setClinicsLoading(false)
+      })
+    return () => {
+      active = false
+    }
+  }, [userId])
 
   const onChange = (name, value) => {
     setValues((prev) => ({ ...prev, [name]: value }))
@@ -85,12 +134,48 @@ export default function ProfileEditForm({ profile, userId, onSaved, onCancel }) 
     return data.publicUrl
   }
 
+  const updateClinic = (key, field, value) => {
+    setClinics((prev) => prev.map((c) => (c.key === key ? { ...c, [field]: value } : c)))
+  }
+
+  const addClinic = () => setClinics((prev) => [...prev, blankClinic()])
+
+  const removeClinic = (key) => {
+    setClinics((prev) => {
+      const target = prev.find((c) => c.key === key)
+      if (target?.id) setRemovedClinicIds((ids) => [...ids, target.id])
+      return prev.filter((c) => c.key !== key)
+    })
+  }
+
+  const saveClinics = async () => {
+    if (removedClinicIds.length > 0) {
+      const { error } = await supabase.from('clinics').delete().in('id', removedClinicIds)
+      if (error) throw error
+    }
+    for (const [index, clinic] of clinics.entries()) {
+      if (!clinic.name && !clinic.address && !clinic.phone && !clinic.website) continue
+      const payload = {
+        profile_id: userId,
+        name: clinic.name || null,
+        address: clinic.address || null,
+        phone: clinic.phone || null,
+        website: clinic.website || null,
+        office_hours: clinic.officeHours || null,
+        sort_order: index,
+      }
+      const { error } = clinic.id
+        ? await supabase.from('clinics').update(payload).eq('id', clinic.id)
+        : await supabase.from('clinics').insert(payload)
+      if (error) throw error
+    }
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     const nextErrors = {
       fullName: validateRequired(values.fullName, 'Your name'),
       phone: validatePhone(values.phone),
-      address: validateRequired(values.address, 'Address'),
     }
     setErrors((prev) => ({ ...prev, ...nextErrors }))
     if (Object.values(nextErrors).some(Boolean)) return
@@ -108,7 +193,7 @@ export default function ProfileEditForm({ profile, userId, onSaved, onCancel }) 
           license_no: values.licenseNo || null,
           years_experience: values.yearsExperience ? Number(values.yearsExperience) : null,
           phone: values.phone,
-          address: values.address,
+          address: values.address || null,
           website: values.website || null,
           office_hours: values.officeHours || null,
           education: values.education || null,
@@ -124,12 +209,39 @@ export default function ProfileEditForm({ profile, userId, onSaved, onCancel }) 
         .eq('id', userId)
       if (error) throw error
 
+      await saveClinics()
+      setRemovedClinicIds([])
+
       await onSaved()
     } catch (err) {
       setFormError(err?.message ?? 'Could not save your profile. Please try again.')
     } finally {
       setSaving(false)
     }
+  }
+
+  const handleEmailUpdate = async () => {
+    const err = validateEmail(emailValue)
+    setEmailError(err)
+    if (err) return
+    setEmailSaving(true)
+    setEmailStatus('')
+    const { error } = await supabase.auth.updateUser({ email: emailValue.trim() })
+    setEmailSaving(false)
+    setEmailStatus(
+      error
+        ? error.message
+        : 'Confirmation links were sent to your old and new email addresses — the change applies once you confirm.'
+    )
+  }
+
+  const handlePasswordReset = async () => {
+    if (!email) return
+    setResetSending(true)
+    setResetStatus('')
+    const { error } = await supabase.auth.resetPasswordForEmail(email)
+    setResetSending(false)
+    setResetStatus(error ? error.message : `Password reset email sent to ${email}.`)
   }
 
   return (
@@ -210,7 +322,12 @@ export default function ProfileEditForm({ profile, userId, onSaved, onCancel }) 
         </Field>
       </div>
 
-      <Field label="Contact phone" htmlFor="phone" error={errors.phone}>
+      <Field
+        label="Personal phone"
+        htmlFor="phone"
+        error={errors.phone}
+        hint="Private — only visible to you and site admins."
+      >
         <Input
           id="phone"
           type="tel"
@@ -220,13 +337,12 @@ export default function ProfileEditForm({ profile, userId, onSaved, onCancel }) 
         />
       </Field>
 
-      <Field label="Practice address" htmlFor="address" error={errors.address}>
-        <Input
-          id="address"
-          value={values.address}
-          onChange={(e) => onChange('address', e.target.value)}
-          invalid={Boolean(errors.address)}
-        />
+      <Field
+        label="Personal address (optional)"
+        htmlFor="address"
+        hint="Private — only visible to you and site admins. Use Practice locations below for what patients see."
+      >
+        <Input id="address" value={values.address} onChange={(e) => onChange('address', e.target.value)} />
       </Field>
 
       <div className="grid gap-5 sm:grid-cols-2">
@@ -341,6 +457,70 @@ export default function ProfileEditForm({ profile, userId, onSaved, onCancel }) 
         Currently accepting new patients
       </label>
 
+      {/* Practice locations */}
+      <fieldset className="space-y-4 border-t border-line pt-6">
+        <div>
+          <legend className="text-sm font-medium text-ink">Practice locations</legend>
+          <p className="text-sm text-muted">
+            Public — shown on your profile so patients know where to find you. Add as many as you have.
+          </p>
+        </div>
+
+        {clinicsLoading ? (
+          <p className="text-sm text-muted">Loading…</p>
+        ) : (
+          <div className="space-y-4">
+            {clinics.map((clinic) => (
+              <div key={clinic.key} className="space-y-3 rounded-md border border-line p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <Input
+                    value={clinic.name}
+                    onChange={(e) => updateClinic(clinic.key, 'name', e.target.value)}
+                    placeholder="Clinic name"
+                    className="max-w-xs"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeClinic(clinic.key)}
+                    className="text-sm text-danger underline underline-offset-2"
+                  >
+                    Remove
+                  </button>
+                </div>
+                <Input
+                  value={clinic.address}
+                  onChange={(e) => updateClinic(clinic.key, 'address', e.target.value)}
+                  placeholder="Address"
+                />
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <Input
+                    type="tel"
+                    value={clinic.phone}
+                    onChange={(e) => updateClinic(clinic.key, 'phone', e.target.value)}
+                    placeholder="Clinic phone"
+                  />
+                  <Input
+                    value={clinic.officeHours}
+                    onChange={(e) => updateClinic(clinic.key, 'officeHours', e.target.value)}
+                    placeholder="Office hours"
+                  />
+                </div>
+                <Input
+                  type="url"
+                  value={clinic.website}
+                  onChange={(e) => updateClinic(clinic.key, 'website', e.target.value)}
+                  placeholder="https://thisclinic.com"
+                />
+              </div>
+            ))}
+          </div>
+        )}
+
+        <Button type="button" variant="ghost" onClick={addClinic}>
+          + Add a practice location
+        </Button>
+      </fieldset>
+
       <div className="flex items-center justify-end gap-3 border-t border-line pt-6">
         <Button type="button" variant="ghost" onClick={onCancel} disabled={saving}>
           Cancel
@@ -348,6 +528,43 @@ export default function ProfileEditForm({ profile, userId, onSaved, onCancel }) 
         <Button type="submit" disabled={saving}>
           {saving ? 'Saving…' : 'Save profile'}
         </Button>
+      </div>
+
+      {/* Account settings */}
+      <div className="space-y-6 border-t border-line pt-6">
+        <h2 className="font-display text-lg text-ink">Account</h2>
+
+        <Field label="Login email" htmlFor="accountEmail" error={emailError}>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <Input
+              id="accountEmail"
+              type="email"
+              value={emailValue}
+              onChange={(e) => {
+                setEmailValue(e.target.value)
+                setEmailError(null)
+                setEmailStatus('')
+              }}
+              invalid={Boolean(emailError)}
+            />
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={handleEmailUpdate}
+              disabled={emailSaving || emailValue.trim() === email}
+            >
+              {emailSaving ? 'Sending…' : 'Update email'}
+            </Button>
+          </div>
+        </Field>
+        {emailStatus && <p className="text-sm text-muted">{emailStatus}</p>}
+
+        <div>
+          <Button type="button" variant="ghost" onClick={handlePasswordReset} disabled={resetSending}>
+            {resetSending ? 'Sending…' : 'Send password reset email'}
+          </Button>
+          {resetStatus && <p className="mt-2 text-sm text-muted">{resetStatus}</p>}
+        </div>
       </div>
     </form>
   )

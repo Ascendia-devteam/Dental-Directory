@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import SiteHeader from '../components/SiteHeader'
+import SiteFooter from '../components/SiteFooter'
 import ProfileCard from '../components/ProfileCard'
 import { supabase } from '../lib/supabase'
 import { SPECIALTIES } from '../lib/specialties'
@@ -45,7 +46,7 @@ export default function Home() {
     let active = true
     supabase
       .from('profiles')
-      .select('username, full_name, specialty, address, avatar_url')
+      .select('username, full_name, specialty, avatar_url, clinics(address)')
       .eq('is_published', true)
       .order('created_at', { ascending: false })
       .limit(3)
@@ -201,22 +202,7 @@ export default function Home() {
         </div>
       </section>
 
-      <footer className="border-t border-line px-5 py-10">
-        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 text-sm text-muted sm:flex-row">
-          <span className="font-display text-base text-brand">Dental Directory</span>
-          <div className="flex gap-6">
-            <Link to="/search" className="hover:text-ink">
-              Find a dentist
-            </Link>
-            <Link to="/register" className="hover:text-ink">
-              List your practice
-            </Link>
-            <Link to="/login" className="hover:text-ink">
-              Sign in
-            </Link>
-          </div>
-        </div>
-      </footer>
+      <SiteFooter />
     </div>
   )
 }

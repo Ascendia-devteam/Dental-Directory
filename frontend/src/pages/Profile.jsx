@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import SiteHeader from '../components/SiteHeader'
+import SiteFooter from '../components/SiteFooter'
 import { supabase } from '../lib/supabase'
 
 function Chip({ children }) {
@@ -23,27 +24,49 @@ function Section({ title, children }) {
 export default function Profile() {
   const { username } = useParams()
   const [profile, setProfile] = useState(null)
+  const [clinics, setClinics] = useState([])
   const [status, setStatus] = useState('loading') // loading | found | not-found
 
   useEffect(() => {
     let active = true
-    // phone is excluded from '*' by a column-level privilege (see
-    // schema.sql section 7) — it only comes back non-null for admins,
-    // via get_public_phone(). Everyone else gets null and the phone
-    // sections below simply don't render.
-    Promise.all([
-      supabase
+
+    async function load() {
+      // phone/address are excluded from '*' by column-level privileges
+      // (see schema.sql sections 7 & 9) — they only come back non-null
+      // for admins, via get_public_phone/get_public_address. Everyone
+      // else gets null and those sections simply don't render.
+      const { data } = await supabase
         .from('profiles')
-        .select('*')
+        .select(
+          'id, username, full_name, degree, specialty, bio, website, office_hours, license_no, education, years_experience, accepts_new_patients, languages, services, insurance_accepted, payment_methods, age_groups, avatar_url'
+        )
         .eq('username', username)
         .eq('is_published', true)
-        .maybeSingle(),
-      supabase.rpc('get_public_phone', { target_username: username }),
-    ]).then(([{ data }, { data: phone }]) => {
+        .maybeSingle()
+
       if (!active) return
-      setProfile(data ? { ...data, phone } : null)
-      setStatus(data ? 'found' : 'not-found')
-    })
+      if (!data) {
+        setStatus('not-found')
+        return
+      }
+
+      const [{ data: phone }, { data: address }, { data: clinicRows }] = await Promise.all([
+        supabase.rpc('get_public_phone', { target_username: username }),
+        supabase.rpc('get_public_address', { target_username: username }),
+        supabase
+          .from('clinics')
+          .select('id, name, address, phone, website, office_hours')
+          .eq('profile_id', data.id)
+          .order('sort_order'),
+      ])
+
+      if (!active) return
+      setProfile({ ...data, phone, address })
+      setClinics(clinicRows ?? [])
+      setStatus('found')
+    }
+
+    load()
     return () => {
       active = false
     }
@@ -162,6 +185,63 @@ export default function Profile() {
         </div>
       </section>
 
+      {/* Practice locations */}
+      {clinics.length > 0 && (
+        <section className="border-b border-line bg-white px-5 py-10">
+          <div className="mx-auto max-w-5xl">
+            <h2 className="font-display text-xl text-ink">Practice locations</h2>
+            <div className="mt-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {clinics.map((clinic) => {
+                const clinicMapsUrl = clinic.address
+                  ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(clinic.address)}`
+                  : null
+                const clinicTelHref = clinic.phone
+                  ? `tel:${clinic.phone.replace(/[^\d+]/g, '')}`
+                  : null
+                return (
+                  <div key={clinic.id} className="rounded-lg border border-line p-4">
+                    <h3 className="font-medium text-ink">{clinic.name || 'Practice location'}</h3>
+                    {clinic.address && (
+                      <p className="mt-1 text-sm text-muted">{clinic.address}</p>
+                    )}
+                    {clinicMapsUrl && (
+                      <a
+                        href={clinicMapsUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="mt-1 inline-block text-sm text-brand underline underline-offset-2"
+                      >
+                        Get directions
+                      </a>
+                    )}
+                    {clinic.phone && (
+                      <p className="mt-2 text-sm">
+                        <a href={clinicTelHref} className="text-ink hover:text-brand">
+                          {clinic.phone}
+                        </a>
+                      </p>
+                    )}
+                    {clinic.office_hours && (
+                      <p className="mt-1 text-sm text-muted">{clinic.office_hours}</p>
+                    )}
+                    {clinic.website && (
+                      <a
+                        href={clinic.website}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="mt-1 inline-block text-sm text-brand underline underline-offset-2"
+                      >
+                        {clinic.website.replace(/^https?:\/\//, '')}
+                      </a>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* Body */}
       <div className="mx-auto grid max-w-5xl gap-10 px-5 py-10 lg:grid-cols-3">
         <div className="space-y-8 lg:col-span-2">
@@ -242,57 +322,67 @@ export default function Profile() {
         </div>
 
         {/* Sidebar */}
-        <aside className="lg:col-span-1">
-          <div className="sticky top-6 space-y-4 rounded-lg border border-line bg-white p-5">
-            <h2 className="font-display text-lg text-ink">Practice information</h2>
+        <aside className="space-y-6 lg:col-span-1">
+          {(office_hours || website) && (
+            <div className="sticky top-6 space-y-4 rounded-lg border border-line bg-white p-5">
+              {office_hours && (
+                <div>
+                  <p className="text-sm text-muted">General office hours</p>
+                  <p className="text-sm text-ink">{office_hours}</p>
+                </div>
+              )}
+              {website && (
+                <div>
+                  <p className="text-sm text-muted">Website</p>
+                  <a
+                    href={website}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-sm text-brand underline underline-offset-2"
+                  >
+                    {website.replace(/^https?:\/\//, '')}
+                  </a>
+                </div>
+              )}
+            </div>
+          )}
 
-            {address && (
+          {(address || phone) && (
+            <div className="space-y-4 rounded-lg border border-line bg-white p-5">
               <div>
-                <p className="text-sm text-muted">Address</p>
-                <p className="text-sm text-ink">{address}</p>
-                <a
-                  href={mapsUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="mt-1 inline-block text-sm text-brand underline underline-offset-2"
-                >
-                  Get directions
-                </a>
+                <h2 className="font-display text-lg text-ink">Private contact details</h2>
+                <p className="text-xs text-muted">Visible to site admins only.</p>
               </div>
-            )}
 
-            {phone && (
-              <div>
-                <p className="text-sm text-muted">Phone</p>
-                <a href={telHref} className="text-sm text-ink hover:text-brand">
-                  {phone}
-                </a>
-              </div>
-            )}
+              {address && (
+                <div>
+                  <p className="text-sm text-muted">Address</p>
+                  <p className="text-sm text-ink">{address}</p>
+                  <a
+                    href={mapsUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mt-1 inline-block text-sm text-brand underline underline-offset-2"
+                  >
+                    Get directions
+                  </a>
+                </div>
+              )}
 
-            {office_hours && (
-              <div>
-                <p className="text-sm text-muted">Office hours</p>
-                <p className="text-sm text-ink">{office_hours}</p>
-              </div>
-            )}
-
-            {website && (
-              <div>
-                <p className="text-sm text-muted">Website</p>
-                <a
-                  href={website}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-sm text-brand underline underline-offset-2"
-                >
-                  {website.replace(/^https?:\/\//, '')}
-                </a>
-              </div>
-            )}
-          </div>
+              {phone && (
+                <div>
+                  <p className="text-sm text-muted">Phone</p>
+                  <a href={telHref} className="text-sm text-ink hover:text-brand">
+                    {phone}
+                  </a>
+                </div>
+              )}
+            </div>
+          )}
         </aside>
       </div>
+
+      <SiteFooter />
     </div>
   )
 }

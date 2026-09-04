@@ -6,7 +6,7 @@ export default function StepReview({ values, onEdit }) {
     ['Specialty', values.specialty || '—', 1],
     ['License', values.licenseNo || '—', 1],
     ['Phone', values.phone, 1],
-    ['Address', values.address, 1],
+    ['Address', values.address || '—', 1],
     ['Photo', values.avatar ? values.avatar.name : 'No photo', 1],
   ]
 
