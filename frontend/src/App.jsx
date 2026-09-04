@@ -8,6 +8,7 @@ import Dashboard from './pages/Dashboard'
 import AdminInbox from './pages/AdminInbox'
 import Terms from './pages/Terms'
 import Privacy from './pages/Privacy'
+import Contact from './pages/Contact'
 import { useAuth } from './context/AuthContext'
 
 function Protected({ children }) {
@@ -49,6 +50,7 @@ export default function App() {
       <Route path="/dr/:username" element={<Profile />} />
       <Route path="/terms" element={<Terms />} />
       <Route path="/privacy" element={<Privacy />} />
+      <Route path="/contact" element={<Contact />} />
       <Route
         path="/register"
         element={
