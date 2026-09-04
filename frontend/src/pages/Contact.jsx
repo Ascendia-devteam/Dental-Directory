@@ -13,17 +13,8 @@ export default function Contact() {
           <a href="/terms" className="text-brand underline underline-offset-2">
             Terms and Conditions
           </a>{' '}
-          — reach us at:
+          — contact details will be published here soon.
         </p>
-        <p className="mt-4">
-          <a
-            href="mailto:info@ascendiagroup.ai"
-            className="font-display text-xl text-brand underline underline-offset-2"
-          >
-            info@ascendiagroup.ai
-          </a>
-        </p>
-        <p className="mt-6 text-sm text-muted">We aim to respond within a few business days.</p>
       </main>
       <SiteFooter />
     </div>

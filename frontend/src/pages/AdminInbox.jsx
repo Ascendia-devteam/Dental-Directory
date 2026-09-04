@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import SiteHeader from '../components/SiteHeader'
 import Button from '../components/ui/Button'
 import { supabase } from '../lib/supabase'
+import { initial } from '../lib/initials'
 
 export default function AdminInbox() {
   const [accounts, setAccounts] = useState([])
@@ -104,7 +105,7 @@ export default function AdminInbox() {
                     />
                   ) : (
                     <span className="flex h-full w-full items-center justify-center text-brand">
-                      {account.full_name?.[0]?.toUpperCase() ?? '·'}
+                      {initial(account.full_name) ?? '·'}
                     </span>
                   )}
                 </div>

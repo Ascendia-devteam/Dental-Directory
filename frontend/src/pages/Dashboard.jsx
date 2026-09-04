@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase'
 import Button from '../components/ui/Button'
 import SiteHeader from '../components/SiteHeader'
 import ProfileEditForm from '../components/ProfileEditForm'
+import { initial } from '../lib/initials'
 
 export default function Dashboard() {
   const { user, profile, refreshProfile } = useAuth()
@@ -76,7 +77,7 @@ export default function Dashboard() {
                 <img src={profile.avatar_url} alt="" className="h-full w-full object-cover" />
               ) : (
                 <span className="flex h-full w-full items-center justify-center text-2xl text-brand">
-                  {profile?.full_name?.[0]?.toUpperCase() ?? '·'}
+                  {initial(profile?.full_name) ?? '·'}
                 </span>
               )}
             </div>
