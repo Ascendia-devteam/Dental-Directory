@@ -5,9 +5,6 @@ on:
     branches: [main]
   workflow_dispatch:
 
-permissions:
-  contents: write
-
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
@@ -48,34 +45,19 @@ jobs:
           SSH_USERNAME: ${{ secrets.SSH_USERNAME }}
           SSH_TARGET: ${{ secrets.SSH_TARGET }}
         run: |
-          exec > >(tee deploy-debug.log) 2>&1
-          set -x
+          set -e
           mkdir -p ~/.ssh
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
           ssh-keyscan -p "$SSH_PORT" "$SSH_HOST" >> ~/.ssh/known_hosts
 
-          SSH_OPTS="-i ~/.ssh/deploy_key -p $SSH_PORT -o BatchMode=yes -vvv"
+          SSH_OPTS="-i ~/.ssh/deploy_key -p $SSH_PORT -o BatchMode=yes"
 
-          scp $SSH_OPTS site.tar.gz "$SSH_USERNAME@$SSH_HOST:/tmp/site.tar.gz" \
-            || echo "SCP_FAILED_EXIT=$?"
+          scp $SSH_OPTS site.tar.gz "$SSH_USERNAME@$SSH_HOST:/tmp/site.tar.gz"
 
           ssh $SSH_OPTS "$SSH_USERNAME@$SSH_HOST" "
             mkdir -p '$SSH_TARGET' &&
             tar -xzf /tmp/site.tar.gz -C '$SSH_TARGET' &&
             rm -f /tmp/site.tar.gz '$SSH_TARGET/default.php' &&
             ls -la '$SSH_TARGET'
-          " || echo "SSH_FAILED_EXIT=$?"
-
-      # Temporary: publish the raw command output to a file readable at
-      # raw.githubusercontent.com, since the Actions log download API
-      # requires an authenticated/admin token even on public repos.
-      - name: Publish debug log
-        if: always()
-        run: |
-          git config user.name "deploy-bot"
-          git config user.email "deploy-bot@users.noreply.github.com"
-          cp deploy-debug.log DEPLOY_DEBUG.log
-          git add DEPLOY_DEBUG.log
-          git commit -m "chore: deploy debug log [skip ci]" || echo "nothing to commit"
-          git push origin HEAD:main
+          "
