@@ -241,7 +241,7 @@ export default function Profile() {
         <div className="space-y-8 lg:col-span-2">
           {bio && (
             <Section title="About">
-              <p className="text-ink">{bio}</p>
+              <p className="whitespace-pre-line text-ink">{bio}</p>
             </Section>
           )}
 
