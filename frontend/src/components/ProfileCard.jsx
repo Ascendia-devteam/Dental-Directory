@@ -20,6 +20,13 @@ export default function ProfileCard({ profile }) {
         <div className="min-w-0">
           <h3 className="truncate font-display text-lg text-ink">{profile.full_name}</h3>
           <p className="text-sm text-brand">{profile.specialty || 'General dentistry'}</p>
+          {/* Only ever a positive signal here — an "unclaimed" chip on each of
+              300 imported listings would be noise, not information. */}
+          {(profile.licence_verified_at || profile.claimed_at) && (
+            <p className="mt-1 text-xs font-medium text-brand">
+              {profile.licence_verified_at ? '✓ Licence verified' : 'Claimed'}
+            </p>
+          )}
         </div>
       </div>
       {profile.clinics?.[0]?.address && (

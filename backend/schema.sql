@@ -1,5 +1,5 @@
 -- ============================================================
---  DENTAL DIRECTORY — Database schema (Supabase Free)
+--  DENTIST SEARCH HUB — Database schema (Supabase Free)
 --  Run in full at: Supabase Dashboard > SQL Editor > New query
 -- ============================================================
 
@@ -512,3 +512,29 @@ grant select (
   id, profile_id, name, address, website, office_hours, sort_order,
   created_at, updated_at
 ) on public.clinics to anon, authenticated;
+
+-- ------------------------------------------------------------
+-- 11. CLAIM AND LICENCE STATE
+--    is_verified was doing two unrelated jobs: gating public
+--    visibility (the RLS policy needs it) and feeding a
+--    "Verified account" badge that claimed we had checked the
+--    dentist's credentials. We never checked any. Split them:
+--
+--      is_verified          admin approved this listing to be public
+--      claimed_at           the dentist took ownership of the listing
+--      licence_verified_at  we checked the licence with a college
+--
+--    Visibility keeps using is_verified, so nothing disappears.
+--    The badge now reads the two new columns, which start null —
+--    i.e. every imported listing correctly reads as unclaimed.
+-- ------------------------------------------------------------
+alter table public.profiles
+  add column if not exists claimed_at          timestamptz,
+  add column if not exists licence_verified_at timestamptz;
+
+comment on column public.profiles.is_verified is
+  'Admin approved this listing for public display. Not a credential check.';
+comment on column public.profiles.claimed_at is
+  'When the dentist took ownership of the listing. Null = unclaimed import.';
+comment on column public.profiles.licence_verified_at is
+  'When we confirmed the licence number with the issuing college. Null = never checked.';

@@ -39,7 +39,7 @@ export default function Profile() {
       const { data } = await supabase
         .from('profiles')
         .select(
-          'id, username, full_name, degree, specialty, bio, website, office_hours, license_no, education, years_experience, accepts_new_patients, languages, services, insurance_accepted, payment_methods, age_groups, avatar_url'
+          'id, username, full_name, degree, specialty, bio, website, office_hours, license_no, education, years_experience, accepts_new_patients, languages, services, insurance_accepted, payment_methods, age_groups, avatar_url, claimed_at, licence_verified_at'
         )
         .eq('username', username)
         .eq('is_published', true)
@@ -111,6 +111,8 @@ export default function Profile() {
     payment_methods = [],
     age_groups = [],
     avatar_url,
+    claimed_at,
+    licence_verified_at,
   } = profile
 
   const mapsUrl = address
@@ -142,9 +144,19 @@ export default function Profile() {
                   {full_name}
                   {degree ? `, ${degree}` : ''}
                 </h1>
-                <span className="inline-flex items-center gap-1 rounded-full bg-brand-soft px-2.5 py-0.5 text-xs font-medium text-brand">
-                  ✓ Verified account
-                </span>
+                {licence_verified_at ? (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-brand-soft px-2.5 py-0.5 text-xs font-medium text-brand">
+                    ✓ Licence verified
+                  </span>
+                ) : claimed_at ? (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-brand-soft px-2.5 py-0.5 text-xs font-medium text-brand">
+                    Claimed by this practice
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 rounded-full border border-line px-2.5 py-0.5 text-xs font-medium text-muted">
+                    Unclaimed listing
+                  </span>
+                )}
               </div>
               <p className="mt-1 text-lg text-brand">{specialty || 'General dentistry'}</p>
 

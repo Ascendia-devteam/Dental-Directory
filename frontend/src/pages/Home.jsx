@@ -23,8 +23,8 @@ const STEPS = [
 
 const VALUE_PROPS = [
   {
-    title: 'License verified',
-    body: 'Every published profile has had its license number checked before it goes live.',
+    title: 'Reviewed before publishing',
+    body: 'Our team reviews every listing before it appears. We show you whether a practice has claimed its profile.',
   },
   {
     title: 'Direct contact',
@@ -46,7 +46,9 @@ export default function Home() {
     let active = true
     supabase
       .from('profiles')
-      .select('username, full_name, specialty, avatar_url, clinics(address)')
+      .select(
+        'username, full_name, specialty, avatar_url, claimed_at, licence_verified_at, clinics(address)'
+      )
       .eq('is_published', true)
       .order('created_at', { ascending: false })
       .limit(3)

@@ -24,7 +24,9 @@ export default function SearchResults() {
     setLoading(true)
     supabase
       .from('profiles')
-      .select('username, full_name, specialty, avatar_url, clinics(name, address)')
+      .select(
+        'username, full_name, specialty, avatar_url, claimed_at, licence_verified_at, clinics(name, address)'
+      )
       .eq('is_published', true)
       .order('created_at', { ascending: false })
       .then(({ data }) => {
