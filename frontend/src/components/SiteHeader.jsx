@@ -10,7 +10,7 @@ export default function SiteHeader() {
     <header className="border-b border-line bg-white">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-4">
         <Link to="/" className="font-display text-xl text-brand">
-          Dental Directory
+          Dentist Search Hub
         </Link>
         <nav className="flex items-center gap-6 text-sm">
           <Link to="/search" className="hidden text-ink sm:inline">

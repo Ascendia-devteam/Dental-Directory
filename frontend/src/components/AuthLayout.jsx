@@ -6,7 +6,7 @@ export default function AuthLayout({ title, subtitle, aside, children }) {
       {/* Brand panel */}
       <aside className="hidden flex-col justify-between bg-brand px-10 py-12 text-white lg:flex">
         <Link to="/" className="font-display text-xl">
-          Dental Directory
+          Dentist Search Hub
         </Link>
 
         <div className="space-y-6">
@@ -27,7 +27,7 @@ export default function AuthLayout({ title, subtitle, aside, children }) {
       <main className="flex items-center justify-center px-5 py-10 sm:px-8">
         <div className="w-full max-w-lg">
           <Link to="/" className="mb-8 block font-display text-lg text-brand lg:hidden">
-            Dental Directory
+            Dentist Search Hub
           </Link>
           <h1 className="font-display text-3xl text-ink">{title}</h1>
           {subtitle && <p className="mt-2 text-muted">{subtitle}</p>}

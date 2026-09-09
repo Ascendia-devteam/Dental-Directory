@@ -1,4 +1,4 @@
-# Dental Directory
+# Dentist Search Hub
 
 A directory of dentists and dental specialists, inspired by the Psychology Today registry. Two independent parts:
 
