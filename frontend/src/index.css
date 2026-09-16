@@ -11,6 +11,15 @@
   --color-brand: #0f5f5c;
   --color-brand-soft: #e6efee;
   --color-danger: #b23b32;
+
+  /* From the new brand mark (logo-icon, favicon, avatar-default) — not yet
+     applied to any UI. Slightly off from --color-brand (#1e5d54 vs #0f5f5c);
+     reconciling the two, and deciding where navy/gold get used beyond the
+     logo itself, is a separate decision (see roadmap, Workstream A). */
+  --color-brand-mark: #1e5d54;
+  --color-navy: #1c3d5a;
+  --color-gold: #a8862f;
+  --color-gold-soft: #c9a646;
 }
 
 html {

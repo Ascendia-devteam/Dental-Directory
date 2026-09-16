@@ -1,5 +1,4 @@
 import { Link } from 'react-router-dom'
-import { initial } from '../lib/initials'
 
 export default function ProfileCard({ profile }) {
   return (
@@ -9,13 +8,11 @@ export default function ProfileCard({ profile }) {
     >
       <div className="flex items-center gap-4">
         <div className="h-14 w-14 shrink-0 overflow-hidden rounded-full border border-line bg-brand-soft">
-          {profile.avatar_url ? (
-            <img src={profile.avatar_url} alt="" className="h-full w-full object-cover" />
-          ) : (
-            <span className="flex h-full w-full items-center justify-center text-lg text-brand">
-              {initial(profile.full_name) ?? '·'}
-            </span>
-          )}
+          <img
+            src={profile.avatar_url || '/brand/avatar-default.png'}
+            alt=""
+            className="h-full w-full object-cover"
+          />
         </div>
         <div className="min-w-0">
           <h3 className="truncate font-display text-lg text-ink">{profile.full_name}</h3>

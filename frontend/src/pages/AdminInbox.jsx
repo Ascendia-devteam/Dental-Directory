@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom'
 import SiteHeader from '../components/SiteHeader'
 import Button from '../components/ui/Button'
 import { supabase } from '../lib/supabase'
-import { initial } from '../lib/initials'
 import { passwordResetRedirectTo } from '../lib/authRedirect'
 
 export default function AdminInbox() {
@@ -100,17 +99,11 @@ export default function AdminInbox() {
                 className="flex flex-wrap items-center gap-4 px-5 py-4"
               >
                 <div className="h-12 w-12 shrink-0 overflow-hidden rounded-full border border-line bg-brand-soft">
-                  {account.avatar_url ? (
-                    <img
-                      src={account.avatar_url}
-                      alt=""
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    <span className="flex h-full w-full items-center justify-center text-brand">
-                      {initial(account.full_name) ?? '·'}
-                    </span>
-                  )}
+                  <img
+                    src={account.avatar_url || '/brand/avatar-default.png'}
+                    alt=""
+                    className="h-full w-full object-cover"
+                  />
                 </div>
 
                 <div className="min-w-0 flex-1">

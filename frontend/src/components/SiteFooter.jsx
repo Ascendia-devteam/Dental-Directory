@@ -4,7 +4,7 @@ export default function SiteFooter() {
   return (
     <footer className="border-t border-line px-5 py-10">
       <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 text-sm text-muted sm:flex-row">
-        <span className="font-display text-base text-brand">Dentist Search Hub</span>
+        <img src="/brand/logo-horizontal.png" alt="Dentist Search Hub" className="h-6 w-auto" />
         <div className="flex gap-6">
           <Link to="/search" className="hover:text-ink">
             Find a dentist

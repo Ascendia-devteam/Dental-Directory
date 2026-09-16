@@ -3,7 +3,6 @@ import { Link, useParams } from 'react-router-dom'
 import SiteHeader from '../components/SiteHeader'
 import SiteFooter from '../components/SiteFooter'
 import { supabase } from '../lib/supabase'
-import { initial } from '../lib/initials'
 
 function Chip({ children }) {
   return (
@@ -129,13 +128,11 @@ export default function Profile() {
         <div className="mx-auto max-w-5xl px-5 py-10">
           <div className="flex flex-col gap-6 sm:flex-row sm:items-center">
             <div className="h-32 w-32 shrink-0 overflow-hidden rounded-full border border-line bg-brand-soft">
-              {avatar_url ? (
-                <img src={avatar_url} alt="" className="h-full w-full object-cover" />
-              ) : (
-                <span className="flex h-full w-full items-center justify-center text-4xl text-brand">
-                  {initial(full_name) ?? '·'}
-                </span>
-              )}
+              <img
+                src={avatar_url || '/brand/avatar-default.png'}
+                alt=""
+                className="h-full w-full object-cover"
+              />
             </div>
 
             <div className="flex-1">

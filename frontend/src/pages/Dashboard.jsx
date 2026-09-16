@@ -5,7 +5,6 @@ import { supabase } from '../lib/supabase'
 import Button from '../components/ui/Button'
 import SiteHeader from '../components/SiteHeader'
 import ProfileEditForm from '../components/ProfileEditForm'
-import { initial } from '../lib/initials'
 
 export default function Dashboard() {
   const { user, profile, refreshProfile } = useAuth()
@@ -73,13 +72,11 @@ export default function Dashboard() {
         <section className="flex flex-wrap items-center justify-between gap-5">
           <div className="flex items-center gap-5">
             <div className="h-20 w-20 shrink-0 overflow-hidden rounded-full border border-line bg-brand-soft">
-              {profile?.avatar_url ? (
-                <img src={profile.avatar_url} alt="" className="h-full w-full object-cover" />
-              ) : (
-                <span className="flex h-full w-full items-center justify-center text-2xl text-brand">
-                  {initial(profile?.full_name) ?? '·'}
-                </span>
-              )}
+              <img
+                src={profile?.avatar_url || '/brand/avatar-default.png'}
+                alt=""
+                className="h-full w-full object-cover"
+              />
             </div>
             <div>
               <h1 className="font-display text-3xl text-ink">
