@@ -4,6 +4,27 @@
 <IfModule mod_rewrite.c>
   RewriteEngine On
   RewriteBase /
+
+  # --- Canonical host -------------------------------------------------
+  # Before this, all four of http/https x www/non-www answered 200, so a
+  # crawler could treat the site as four complete duplicates and split the
+  # ranking signals between them.
+  #
+  # The two protocol conditions are ANDed on purpose. Hostinger terminates
+  # TLS at a proxy, where %{HTTPS} can read "off" on a request that already
+  # arrived over HTTPS — redirecting on that alone would loop forever.
+  # X-Forwarded-Proto is the proxy's own account of the original scheme.
+  RewriteCond %{HTTPS} !=on
+  RewriteCond %{HTTP:X-Forwarded-Proto} !=https
+  RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+  # www -> non-www. Runs as its own rule rather than being ORed into the
+  # one above, because mixing OR into the protocol test would reintroduce
+  # the loop. Costs http://www a second hop; every other case is one.
+  RewriteCond %{HTTP_HOST} ^www\.(.+)$ [NC]
+  RewriteRule ^ https://%1%{REQUEST_URI} [L,R=301]
+
+  # --- SPA fallback ---------------------------------------------------
   RewriteRule ^index\.html$ - [L]
   RewriteCond %{REQUEST_FILENAME} !-f
   RewriteCond %{REQUEST_FILENAME} !-d

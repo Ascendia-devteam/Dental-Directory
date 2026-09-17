@@ -11,6 +11,7 @@ import Privacy from './pages/Privacy'
 import Contact from './pages/Contact'
 import ForgotPassword from './pages/ForgotPassword'
 import ResetPassword from './pages/ResetPassword'
+import CanonicalLink from './components/CanonicalLink'
 import { useAuth } from './context/AuthContext'
 
 function Protected({ children }) {
@@ -46,51 +47,54 @@ function GuestOnly({ children }) {
 
 export default function App() {
   return (
-    <Routes>
-      <Route path="/" element={<Home />} />
-      <Route path="/search" element={<SearchResults />} />
-      <Route path="/dr/:username" element={<Profile />} />
-      <Route path="/terms" element={<Terms />} />
-      <Route path="/privacy" element={<Privacy />} />
-      <Route path="/contact" element={<Contact />} />
-      {/* Both stay outside GuestOnly on purpose: the recovery link signs the
-          user in, so a guest-only guard would bounce them to /dashboard
-          before they could set a new password. */}
-      <Route path="/forgot-password" element={<ForgotPassword />} />
-      <Route path="/reset-password" element={<ResetPassword />} />
-      <Route
-        path="/register"
-        element={
-          <GuestOnly>
-            <Register />
-          </GuestOnly>
-        }
-      />
-      <Route
-        path="/login"
-        element={
-          <GuestOnly>
-            <Login />
-          </GuestOnly>
-        }
-      />
-      <Route
-        path="/dashboard"
-        element={
-          <Protected>
-            <Dashboard />
-          </Protected>
-        }
-      />
-      <Route
-        path="/admin"
-        element={
-          <AdminOnly>
-            <AdminInbox />
-          </AdminOnly>
-        }
-      />
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+    <>
+      <CanonicalLink />
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/search" element={<SearchResults />} />
+        <Route path="/dr/:username" element={<Profile />} />
+        <Route path="/terms" element={<Terms />} />
+        <Route path="/privacy" element={<Privacy />} />
+        <Route path="/contact" element={<Contact />} />
+        {/* Both stay outside GuestOnly on purpose: the recovery link signs
+            the user in, so a guest-only guard would bounce them to
+            /dashboard before they could set a new password. */}
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
+        <Route
+          path="/register"
+          element={
+            <GuestOnly>
+              <Register />
+            </GuestOnly>
+          }
+        />
+        <Route
+          path="/login"
+          element={
+            <GuestOnly>
+              <Login />
+            </GuestOnly>
+          }
+        />
+        <Route
+          path="/dashboard"
+          element={
+            <Protected>
+              <Dashboard />
+            </Protected>
+          }
+        />
+        <Route
+          path="/admin"
+          element={
+            <AdminOnly>
+              <AdminInbox />
+            </AdminOnly>
+          }
+        />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </>
   )
 }

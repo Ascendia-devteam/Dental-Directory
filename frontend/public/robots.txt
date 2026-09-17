@@ -1,0 +1,14 @@
+User-agent: *
+Allow: /
+
+# App routes, not directory content. These are also marked noindex in the
+# page itself (see CanonicalLink.jsx) — robots.txt only stops crawling, and
+# a URL linked from anywhere else can still be indexed without being fetched.
+Disallow: /login
+Disallow: /register
+Disallow: /dashboard
+Disallow: /admin
+Disallow: /forgot-password
+Disallow: /reset-password
+
+Sitemap: https://dentistsearchhub.com/sitemap.xml

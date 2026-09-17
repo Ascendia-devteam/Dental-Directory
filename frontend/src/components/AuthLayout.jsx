@@ -8,8 +8,8 @@ export default function AuthLayout({ title, subtitle, aside, children }) {
         {/* The navy/gold wordmark needs a light background to read, so the
             teal panel gets the icon-only mark instead of the full lockup. */}
         <Link to="/" className="flex items-center gap-2">
-          <img src="/brand/logo-icon.png" alt="" className="h-8 w-8 rounded-lg" />
-          <span className="font-display text-xl">Dentist Search Hub</span>
+          <img src="/brand/logo-icon.png" alt="" className="h-10 w-10 rounded-lg" />
+          <span className="font-display text-2xl">Dentist Search Hub</span>
         </Link>
 
         <div className="space-y-6">
@@ -30,7 +30,7 @@ export default function AuthLayout({ title, subtitle, aside, children }) {
       <main className="flex items-center justify-center px-5 py-10 sm:px-8">
         <div className="w-full max-w-lg">
           <Link to="/" className="mb-8 block lg:hidden">
-            <img src="/brand/logo-horizontal.png" alt="Dentist Search Hub" className="h-8 w-auto" />
+            <img src="/brand/logo-horizontal.png" alt="Dentist Search Hub" className="h-10 w-auto" />
           </Link>
           <h1 className="font-display text-3xl text-ink">{title}</h1>
           {subtitle && <p className="mt-2 text-muted">{subtitle}</p>}
