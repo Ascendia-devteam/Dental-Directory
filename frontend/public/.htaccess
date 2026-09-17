@@ -1,3 +1,19 @@
+# ---------------------------------------------------------------------
+# HEADS UP: this file is currently IGNORED on our Hostinger setup.
+#
+# Verified 17 Sep 2026 by putting an invalid directive at the top: the site
+# kept returning 200 instead of 500, so the file is never parsed. The SPA
+# fallback below appears to work, but that is Hostinger's platform doing it,
+# not these rules. A test RewriteRule with R=302 also never fired.
+#
+# Practical consequence: the canonical-host redirects below do nothing.
+# https/non-www has to be forced from hPanel (Force HTTPS + the www
+# preference), or by putting the domain behind Cloudflare.
+#
+# Kept in the repo because it is correct, costs nothing, and starts working
+# the moment the site moves to a host that honours .htaccess.
+# ---------------------------------------------------------------------
+#
 # React Router serves every route from index.html. Without this, opening
 # /search or /dr/username directly (or refreshing there) returns 404 on
 # Apache/LiteSpeed, because no such file exists on disk.
@@ -14,15 +30,17 @@
   # TLS at a proxy, where %{HTTPS} can read "off" on a request that already
   # arrived over HTTPS — redirecting on that alone would loop forever.
   # X-Forwarded-Proto is the proxy's own account of the original scheme.
+  # Pattern is ^(.*)$ rather than the Apache-2.4 shorthand ^, which
+  # LiteSpeed (what Hostinger runs) does not reliably match.
   RewriteCond %{HTTPS} !=on
   RewriteCond %{HTTP:X-Forwarded-Proto} !=https
-  RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+  RewriteRule ^(.*)$ https://%{HTTP_HOST}/$1 [L,R=301]
 
   # www -> non-www. Runs as its own rule rather than being ORed into the
   # one above, because mixing OR into the protocol test would reintroduce
   # the loop. Costs http://www a second hop; every other case is one.
   RewriteCond %{HTTP_HOST} ^www\.(.+)$ [NC]
-  RewriteRule ^ https://%1%{REQUEST_URI} [L,R=301]
+  RewriteRule ^(.*)$ https://%1/$1 [L,R=301]
 
   # --- SPA fallback ---------------------------------------------------
   RewriteRule ^index\.html$ - [L]
